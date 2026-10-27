@@ -1,0 +1,31 @@
+# OmniTrak Three-Nosepoke Module (OT-3P)
+
+## Module Description
+
+Vulintus' OmniTrak Three-Nosepoke Module (OT-3P) is a standalone unit consisting of three mouse-sized nosepokes set into a 150mm wide cage wall. Within each nosepoke, an infrared beam is projected horizontally across the center just inside of the outer wall surface to detect animal nosing within the nosepoke recess. The central nosepoke is centered within the cage wall, 40mm above the cage floor, as measured from the floor to the center of the nosepoke. The left and right nosepokes flank the central nosepoke, at the same height, spaced 25mm to each side as measured from center-to-center. An RGB LED is set into the wall, shining through a light pipe, 25mm above each nosepoke, as measured from center-to-center. A liquid feeding needle can be mounted within each nosepoke to provide liquid rewards delivered by a liquid dispenser.
+
+---
+
+## Programming
+
+To program the module in the Arduino IDE, install the [Vulintus Board Definitions](https://github.com/Vulintus/Vulintus_Board_Definitions) and select "OmniTrak Three-Nosepoke Module (OT-3P)" from "Vulintus AVR Devices" as the target board. Then, in the Tools menu, set the "Circuit Board Version" to "Version 2.3" (it will be the only option). The pin definitions below refer to that board definition.
+
+---
+
+## Electronics
+
+The OmniTrak Three-Nosepoke Module was designed around an ATmega328 microcontroller so that customers can easily reprogram it using the Arduino IDE by treating it as an Arduino Uno. The circuit includes an FTDI FT230X USB-to-UART bridge, so that the module can be directly connected to a computer through its integrated USB-C jack. 
+
+The infrared beam across each nosepoke is created by a matching infrared LED and phototransistor pair, each tuned to a wavelength of ~940 nm. The collector of each phototransistor is connected to a GPIO on the ATmega328 (PIN_NOSEPOKE_L, PIN_NOSEPOKE_C, PIN_NOSEPOKE_R), and the signal is pulled up to 5V. The signal will be high when the nosepoke is blocked and low when the it is unblocked. In some cases the infrared LED intensity can overpower small objects blocking the beam, so the LED intensity can be commonly modulated for all three nosepokes with a PWM-capable output pin on the ATmega328 (PIN_IR_INT). Make sure the intensity is set to a non-zero value when reading the signals from the nosepokes.
+
+The RGB LED above each nosepoke is an OPSCO SK6812, popularly called a "NeoPixel." The three SK6812s are connected in a daisy chain configuration so that they can all be controlled with a single GPIO on the ATmega328 (PIN_NEOPIX). The chain order of the LEDs is left->center->right.
+
+Three 0.1" header pins are exposed in the center of the back of the module to accept connections for capacitive sensors, typically attached to metal feeding needles to detect licking during liquid rewards. These inputs are configured to work based on Paul Badger and Paul Stoffregen's [CapacitiveSensor](https://github.com/PaulStoffregen/CapacitiveSensor) library. A common "send" GPIO (PIN_CAP_SEND) sends an transient signal through a 1 MOhm resistor connected to a 100 pF capacitor. The junction between the resistor and the capacitor is then connected to a metal sensing electrode and also to a "receive" analog input on the ATmega328 (PIN_CAPSENSE_L, PIN_CAPSENSE_C, PIN_CAPSENSE_R). With the Three-Nosepoke module, any conducting lead and object can be connected as a capacitve sensor, although it's most typical to connect a short lead clipped to metal feeding needle to detect licking.
+
+There are two LEDs on the back side of the module to indicate the device status. A green LED indicates when the module is receiving power, and red LED is connected to the CBUS0 output on the FT230X to indicate when the module is in active communication over USB. For cases in which the status LEDs might disrupt behavior in a dark chamber, power to both status LEDs can be enabled or disabled by controlling an NPN transistor connected to a GPIO on the ATmega328 (PIN_LED_EN).
+
+A single BNC connector on the back of the module allows it to send or recieve 5V TTL signals to and from other electrophysiology systems. The center pin of the BNC connection is connected to a GPIO on the ATmega328 (PIN_BNC_IO) through a 1 kOhm resistor, and the BNC shield is connected to ground.
+
+The module has three [VPB](standards\vulintus_peripheral_bus.md) connectors, designated A, B, and C, on the back for connecting reward dispensers, cage lights, and other higher-power peripheral devices. The TRG lines on all VPB connectors are commonly controlled by a single GPIO on the ATmega328 (PIN_VPB_TRG). The CLK lines are similarly connect to two common GPIOs on the ATmega328 (PIN_VPB_CLK_IN and PIN_VPB_CLK_OUT), which are separately responsible for receiving and sending (respectively) CLK signals. Passthrough of the CLK signal from one VPB connection to the next can be blocked by setting the output of two GPIOs high, one which blocks passthrough from A to B (PIN_VPB_BLOCK_AB) and one which blocks passthrough from B to C (PIN_VPB_BLOCK_BC). When passthrough is open, the TRG and CLK signals are sent commonly to all VPB connectors.
+
+To provide power to any connected VPB peripherals, a 2.1mm DC power jack on the back of the module accepts center-pin-positive power supplies ranging from ~15V to ~24V. Several ADC channels on the ATmega328 in the module are dedicated to power monitoring to help in troubleshooting system problem. One channel (PIN_PWR_FAULT) monitors an active-low fault signal from an under/over-voltage protection circuit for the VPB power supply (the ATmega328 will still receive power from USB if the USB is connected). Another channel (PIN_VIN_ADC) monitors the VPB power supply voltage through a voltage divider with a 240 kOhm top resistor and 36 kOhm bottom resistor. A third channel (PIN_IIN_ADC) monitors the current from VPB power supply through a 200x gain current-sense amplifier measuring across a 0.01 Ohm resistor.

@@ -1,1 +1,2 @@
-# Vulintus_AI_Guidance
+# Vulintus AI Policy & Guidance
+
